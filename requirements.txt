@@ -1,0 +1,10 @@
+numpy
+pandas
+seaborn
+matplotlib
+scipy
+os
+cPickle
+bz2
+itertools
+statsmodels
