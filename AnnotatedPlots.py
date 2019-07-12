@@ -5,7 +5,6 @@ Created on Wed Apr 17 09:29:38 2019
 @author: pedro
 
 """
-# %% Importing packages
 import numpy as np
 import pandas as pd
 import seaborn as sns
