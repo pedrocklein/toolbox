@@ -4,7 +4,10 @@ seaborn
 matplotlib
 scipy
 os
+pickle
 cPickle
 bz2
+gzip
 itertools
 statsmodels
+shutil
