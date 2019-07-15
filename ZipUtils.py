@@ -24,13 +24,11 @@ class ZipUtils:
     --------    
     extract_all_gz(folder, keep_files)
         Extract all gzip files in a folder. If keep_files is set to False, deletes also the old gzip files.
-    
-            
     """
 
     def extract_all_gz(self, folder, keep_files=True):
         """
-        Generates a graph with the p-value annotations on it.
+       Unzip all gzip files in a specified folder
         
         Parameters
         -----------        
