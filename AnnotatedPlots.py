@@ -53,7 +53,7 @@ class AnnotatedPlots:
     def __init__(self):
         pass
     
-    def plot_annotated_graph(self, df, y_var, x_var, order=None, title=None, xlabel=None, ylabel=None, plot_id=None, x_ticks=None, plot_function=sns.violinplot):
+    def plot_annotated_graph(self, df, y_var, x_var, order=None, title=None, xlabel=None, ylabel=None, plot_id=None, x_ticks=None, font_scale=1.1, plot_function=sns.violinplot, plot_args={}):
         """
         Generates a graph with the p-value annotations on it.
         
@@ -79,9 +79,12 @@ class AnnotatedPlots:
         x_ticks : array, optional
             If defined, will replace the ticks in the x-axis by the items in this list (in order).
             Note: x_ticks must have the same size of the number of items in the x-axis.
+        font_scale: float, optional
+            scaling factor for the "font_size" attribute on seaborn. Default 1.1 .
         plot_function : function, optional
             Defines the function used to generate the graphs. This function is still experimental and its default value is seaborn.violinplot.
-        
+        plot_args : dict, optional
+            Defines the additional arguments from the curent plot_function to be used on the plot function.
         Returns
         -------
         g : matplotlib.axes._subplots.AxesSubplot
@@ -92,7 +95,8 @@ class AnnotatedPlots:
             List of post-hoc T-tests for all categories
             
         """
-        
+        # Increase overall fontsize
+        sns.set(font_scale = font_scale)
         # Check for integrity in order:
         if order != None:
             if not np.all([i in df[x_var].unique() for i in pd.Series(order).unique()]) or len(df[x_var].unique()) != len(pd.Series(order).unique()):
@@ -106,7 +110,7 @@ class AnnotatedPlots:
         
         # Instantiate the figure
         plt.figure()
-        g = plot_function(data=df, x=x_var, y=y_var, order=order)
+        g = plot_function(data=df, x=x_var, y=y_var, order=order, **plot_args)
         
         # Apply the defined x_ticks
         if x_ticks != None:
@@ -148,7 +152,7 @@ class AnnotatedPlots:
             factor = (x2 - x1)
             
             # Define the height of the bracket    
-            h = dist_y*0.07
+            h = dist_y*0.08
             
             # Define the y position of the bracket base
             y = ylim - dist_y*0.1
@@ -157,9 +161,9 @@ class AnnotatedPlots:
             col = 'k'
             
             g.plot([x1+xlim*0.01, x1+xlim*0.01, x2-xlim*0.01, x2-xlim*0.01], 
-                    [y+h*0.5+(factor*h), y+h+(factor*h), y+h+(factor*h), y+h*0.5+(factor*h)], lw=1, c=col)
-            g.plot((x2+x1)*0.5, y+h+(factor*h))
-            g.text((x2+x1)*0.5,y+h+(factor*h), 'p=%s'%p_value, ha='center', va='bottom', color=col)    
+                    [y+h*0.5+(factor*1.2*h), y+h+(factor*1.2*h), y+h+(factor*1.2*h), y+h*0.5+(factor*1.2*h)], lw=1, c=col)
+            g.plot((x2+x1)*0.5, y+h+(factor*1.5*h))                        
+            g.text((x2+x1)*0.5,y+h+(factor*1.2*h), 'p=%s'%p_value, ha='center', va='bottom', color=col)    
         
         if title != None and False:
             g.set_title(title)
