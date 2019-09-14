@@ -53,7 +53,7 @@ class AnnotatedPlots:
     def __init__(self):
         pass
     
-    def plot_annotated_graph(self, df, y_var, x_var, order=None, title=None, xlabel=None, ylabel=None, plot_id=None, x_ticks=None, font_scale=1.1, plot_function=sns.violinplot, plot_args={}):
+    def plot_annotated_graph(self, df, y_var, x_var, order=None, title=None, xlabel=None, ylabel=None, plot_id=None, x_ticks=None, font_scale=1.3, plot_function=sns.violinplot, plot_args={}):
         """
         Generates a graph with the p-value annotations on it.
         
@@ -96,7 +96,8 @@ class AnnotatedPlots:
             
         """
         # Increase overall fontsize
-        sns.set(font_scale = font_scale)
+        sns.set(font_scale = font_scale)        
+        sns.set_style("ticks")
         # Check for integrity in order:
         if order != None:
             if not np.all([i in df[x_var].unique() for i in pd.Series(order).unique()]) or len(df[x_var].unique()) != len(pd.Series(order).unique()):
@@ -161,9 +162,9 @@ class AnnotatedPlots:
             col = 'k'
             
             g.plot([x1+xlim*0.01, x1+xlim*0.01, x2-xlim*0.01, x2-xlim*0.01], 
-                    [y+h*0.5+(factor*1.2*h), y+h+(factor*1.2*h), y+h+(factor*1.2*h), y+h*0.5+(factor*1.2*h)], lw=1, c=col)
-            g.plot((x2+x1)*0.5, y+h+(factor*1.5*h))                        
-            g.text((x2+x1)*0.5,y+h+(factor*1.2*h), 'p=%s'%p_value, ha='center', va='bottom', color=col)    
+                    [y+h*0.5+(factor*1.4*h), y+h+(factor*1.4*h), y+h+(factor*1.4*h), y+h*0.5+(factor*1.4*h)], lw=1, c=col)
+            g.plot((x2+x1)*0.5, y+h+(factor*1.7*h))                        
+            g.text((x2+x1)*0.5,y+h+(factor*1.4*h), 'p=%s'%p_value, ha='center', va='bottom', color=col)    
         
         if title != None and False:
             g.set_title(title)
