@@ -53,7 +53,7 @@ class AnnotatedPlots:
     def __init__(self):
         pass
     
-    def plot_annotated_graph(self, df, y_var, x_var, order=None, title=None, xlabel=None, ylabel=None, plot_id=None, x_ticks=None, font_scale=1.3, plot_function=sns.violinplot, plot_args={}):
+    def plot_annotated_graph(self, df, y_var, x_var, hue=None, order=None, title=None, xlabel=None, ylabel=None, plot_id=None, x_ticks=None, font_scale=1.3, plot_function=sns.violinplot, plot_args={}):
         """
         Generates a graph with the p-value annotations on it.
         
@@ -111,7 +111,7 @@ class AnnotatedPlots:
         
         # Instantiate the figure
         plt.figure()
-        g = plot_function(data=df, x=x_var, y=y_var, order=order, **plot_args)
+        g = plot_function(data=df, x=x_var, y=y_var, hue=hue, order=order, **plot_args)
         
         # Apply the defined x_ticks
         if x_ticks != None:
@@ -131,11 +131,21 @@ class AnnotatedPlots:
         
         # print the ANOVA test results
         # TODO: find a way of printing it ON the violinplot
-        t_tests = t_test_df(df, y_var, x_var, groups=order)
+        if hue is None:
+            t_tests = t_test_df(df, y_var, x_var, groups=order)
+        else:
+            t_tests = []
+            #If hue is set, then inspect hue as the x_var with x_var groups as the constraint
+            for constraint in order:
+                t_df = df.query("%s == '%s'"%(x_var,constraint))
+                t_tests.append(t_test_df(t_df, y_var, hue, groups=t_df[hue].unique()))
+            t_tests = np.asarray(t_tests).reshape(-1,3)
         anova = run_anova_df(df, y_var, x_var)
         print 'ANOVA for %s (%s): %.3f' % (x_var, y_var, anova['PR(>F)'].values[0])
     
         # Plot the statistical annotation for combinations on the graph
+        print(np.asarray(t_tests).shape)
+        print(t_tests)
         for ti, t in enumerate(t_tests):            
             # Format the p-value for plotting
             p_value = t[2][1]
@@ -147,8 +157,13 @@ class AnnotatedPlots:
                 p_value = format(np.around(p_value, 3))
             
             # Define the postion of x1 and x2 on the graph to plot the bracket
-            x1 = int([i for i, group in enumerate(order) if group == t[1][0]][0])
-            x2 = int([i for i, group in enumerate(order) if group == t[1][1]][0])
+            if hue == None:
+                x1 = int([i for i, group in enumerate(order) if group == t[1][0]][0])
+                x2 = int([i for i, group in enumerate(order) if group == t[1][1]][0])
+            else:
+                x1 = -0.25+ti
+                x2 = 0.25+ti
+                print(x1,x2)
             
             factor = (x2 - x1)
             
