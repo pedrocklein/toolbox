@@ -11,8 +11,11 @@ from visbrain.io import download_file, read_stc
 
 from sklearn import preprocessing
 
-class PlotBrain:
-        
+class PlotBrain:        
+    
+    def __init__(self):
+        pass
+    
     def create_scene(self, bgcolor='white', size=(4000, 3000)):
         # Scene creation
         self.sc = SceneObj(bgcolor=bgcolor, size=size)
