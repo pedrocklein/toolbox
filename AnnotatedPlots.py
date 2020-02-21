@@ -53,7 +53,7 @@ class AnnotatedPlots:
     def __init__(self):
         pass
     
-    def plot_annotated_graph(self, df, y_var, x_var, hue=None, hue_order=None, order=None, title=None, xlabel=None, ylabel=None, plot_id=None, x_ticks=None, font_scale=1.3, plot_function=sns.violinplot, plot_args={}):
+    def plot_annotated_graph(self, df, y_var, x_var, hue=None, hue_order=None, order=None, title=None, xlabel=None, ylabel=None, plot_id=None, x_ticks=None, figsize=None, font_scale=1.3, plot_function=sns.violinplot, plot_args={}):
         """
         Generates a graph with the p-value annotations on it.
         
@@ -110,7 +110,7 @@ class AnnotatedPlots:
                 raise Exception('x_ticks must be of the same size of the items in the x-axis')
         
         # Instantiate the figure
-        plt.figure()
+        plt.figure(figsize=figsize)
         g = plot_function(data=df, x=x_var, y=y_var, hue=hue, order=order, hue_order=hue_order, **plot_args)
         
         # Apply the defined x_ticks
