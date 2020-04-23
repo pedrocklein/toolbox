@@ -11,7 +11,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 import os
-import cPickle as pickle
+import pickle
 import bz2 as bzip
 import itertools
 
@@ -19,24 +19,6 @@ import statsmodels as sm
 from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
 from statsmodels.stats import multitest
-
-def statsmodel_anova(df, query):
-    model_lm = ols(query, data=df).fit()
-    table = anova_lm(model_lm, typ=2) # Type 2 ANOVA DataFrame
-    return table
-
-def run_anova_df(df, var, genotype):
-    anova_query = var + ' ~ C('+genotype+')'    
-    return statsmodel_anova(df, anova_query)
-    
-def t_test_df(df, y_var, x_var, groups):
-    combinations = list(itertools.combinations(groups, 2))
-    t_tests = []
-    for combination in combinations:
-        t_tests.append(('%s vs. %s'%(combination[0], combination[1]), combination,  stats.ttest_ind(df.query(x_var +' == "'+combination[0]+'"')[y_var], 
-                                             df.query(x_var +' == "'+combination[1]+'"')[y_var])))
-    return t_tests
-
 
 class AnnotatedPlots:
     """
@@ -53,7 +35,42 @@ class AnnotatedPlots:
     def __init__(self):
         pass
     
-    def plot_annotated_graph(self, df, y_var, x_var, hue=None, hue_order=None, order=None, title=None, xlabel=None, ylabel=None, plot_id=None, x_ticks=None, figsize=None, font_scale=1.3, plot_function=sns.violinplot, plot_args={}):
+    def statsmodel_anova(self, df, query):
+        model_lm = ols(query, data=df).fit()        
+        table = anova_lm(model_lm, typ=2) # Type 2 ANOVA DataFrame
+        return table
+
+    def run_anova_df(self, df, y_var, x_var, confounds=''):
+        anova_query = y_var + ' ~ C('+x_var+')'+ confounds 
+        return self.statsmodel_anova(df, anova_query)
+        
+    #def t_test_df(df, y_var, x_var, groups):
+    #    combinations = list(itertools.combinations(groups, 2))
+    #    t_tests = []
+    #    for combination in combinations:
+    #        t_tests.append(('%s vs. %s'%(combination[0], combination[1]), 
+    #                        combination, 
+    #                        stats.ttest_ind(df.query(x_var +' == "'+combination[0]+'"')[y_var], 
+    #                                             df.query(x_var +' == "'+combination[1]+'"')[y_var])))
+    #    return t_tests
+    
+    def t_test_df_with_confounds(self,df, y_var, x_var, groups, confounds):
+        combinations = list(itertools.combinations(groups, 2))
+        t_tests = []
+        for combination in combinations:
+            df_t = df.query(x_var +' == "'+combination[0]+'" or '+
+                            x_var +' == "'+combination[1]+'"')
+            t_tests.append(('%s vs. %s'%(combination[0], combination[1]), 
+                            combination,  self.run_anova_df(df_t, y_var, x_var, confounds)))
+        return t_tests
+    
+    def plot_annotated_graph(self, df, y_var, x_var, hue=None, hue_order=None, 
+                             order=None, title=None, xlabel=None, ylabel=None, 
+                             plot_id=None, x_ticks=None, figsize=None, 
+                             font_scale=1.3, plot_function=sns.violinplot, 
+                             plot_args={}, confounds='', force_p=None, 
+                             hide_spines=["right","top"], hide_xticks=False, 
+                             hide_yticks=False, hide_annot=False):
         """
         Generates a graph with the p-value annotations on it.
         
@@ -117,9 +134,13 @@ class AnnotatedPlots:
         if x_ticks != None:
             g.set(xticklabels=x_ticks)
         
-        # remove the top and right axis
-        g.spines['right'].set_visible(False)
-        g.spines['top'].set_visible(False)
+        # remove the defined axis
+        [g.spines[spine].set_visible(False) for spine in hide_spines if len(hide_spines) > 0]
+#        g.spines['right'].set_visible(False)
+#        g.spines['top'].set_visible(False)
+        
+        if hide_xticks: g.set(xticks=[])
+        if hide_yticks: g.set(yticks=[])
         
         # get the x and y-axis limits
         ylim = g.get_ylim()[1]
@@ -132,23 +153,23 @@ class AnnotatedPlots:
         # print the ANOVA test results
         # TODO: find a way of printing it ON the violinplot
         if hue is None:
-            t_tests = t_test_df(df, y_var, x_var, groups=order)
+            t_tests = self.t_test_df_with_confounds(df, y_var, x_var, groups=order, confounds=confounds)
         else:
             t_tests = []
             #If hue is set, then inspect hue as the x_var with x_var groups as the constraint
             for constraint in order:
                 t_df = df.query("%s == '%s'"%(x_var,constraint))
-                t_tests.append(t_test_df(t_df, y_var, hue, groups=hue_order))
+                t_tests.append(self.t_test_df_with_confounds(t_df, y_var, hue, groups=hue_order, confounds=confounds))
             t_tests = np.asarray(t_tests).reshape(-1,3)
-        anova = run_anova_df(df, y_var, x_var)
-        print 'ANOVA for %s (%s): %.3f' % (x_var, y_var, anova['PR(>F)'].values[0])
+        anova = self.run_anova_df(df, y_var, x_var, confounds=confounds)
+        print('ANOVA for %s (%s): %.3f' % (x_var, y_var, anova['PR(>F)'].values[0]))
     
         # Plot the statistical annotation for combinations on the graph
-        print(np.asarray(t_tests).shape)
-        print(t_tests)
         for ti, t in enumerate(t_tests):            
             # Format the p-value for plotting
-            p_value = t[2][1]
+            p_value = t[2]['PR(>F)'][0]
+            if force_p:
+                p_value = force_p
             if p_value > 0.05:
                 p_value = "n.s" # non-significant
             elif p_value < 0.001:
@@ -176,12 +197,13 @@ class AnnotatedPlots:
             # Define the color of the bracket (black)
             col = 'k'
             
-            g.plot([x1+xlim*0.01, x1+xlim*0.01, x2-xlim*0.01, x2-xlim*0.01], 
-                    [y+h*0.5+(factor*1.4*h), y+h+(factor*1.4*h), y+h+(factor*1.4*h), y+h*0.5+(factor*1.4*h)], lw=1, c=col)
-            g.plot((x2+x1)*0.5, y+h+(factor*1.7*h))                        
-            g.text((x2+x1)*0.5,y+h+(factor*1.4*h), 'p=%s'%p_value, ha='center', va='bottom', color=col)    
+            if not hide_annot:
+                g.plot([x1+xlim*0.01, x1+xlim*0.01, x2-xlim*0.01, x2-xlim*0.01], 
+                        [y+h*0.5+(factor*1.4*h), y+h+(factor*1.4*h), y+h+(factor*1.4*h), y+h*0.5+(factor*1.4*h)], lw=1, c=col)
+                g.plot((x2+x1)*0.5, y+h+(factor*1.7*h))                        
+                g.text((x2+x1)*0.5,y+h+(factor*1.4*h), 'p = %s'%p_value, ha='center', va='bottom', color=col, fontsize=18)    
         
-        if title != None and False:
+        if title != None:
             g.set_title(title)
         if xlabel != None:
             g.set_xlabel(xlabel)
